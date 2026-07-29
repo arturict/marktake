@@ -1,0 +1,19 @@
+services:
+  marktake:
+    image: ghcr.io/arturict/marktake:${MARKTAKE_VERSION:-0.1.0}
+    build:
+      context: .
+    restart: unless-stopped
+    ports:
+      - "${MARKTAKE_PORT:-4180}:4180"
+    environment:
+      MARKTAKE_ADMIN_PASSWORD: "${MARKTAKE_ADMIN_PASSWORD:?Set a password with at least 12 characters}"
+      MARKTAKE_PUBLIC_URL: "${MARKTAKE_PUBLIC_URL:-http://localhost:4180}"
+      MARKTAKE_SECURE_COOKIES: "${MARKTAKE_SECURE_COOKIES:-false}"
+      MARKTAKE_MAX_UPLOAD_BYTES: "${MARKTAKE_MAX_UPLOAD_BYTES:-536870912}"
+      MARKTAKE_MAX_STORAGE_BYTES: "${MARKTAKE_MAX_STORAGE_BYTES:-5368709120}"
+    volumes:
+      - marktake-data:/data
+
+volumes:
+  marktake-data:

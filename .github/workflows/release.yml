@@ -1,0 +1,79 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+  packages: write
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - name: Log in to GHCR
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Derive image metadata
+        id: meta
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+          labels: |
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ github.ref_name }}
+      - name: Build and push multi-platform image
+        id: image
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          provenance: mode=max
+          sbom: true
+      - name: Prepare release artifacts
+        run: |
+          mkdir release
+          cp compose.yaml .env.example release/
+          printf '%s\n' '${{ steps.image.outputs.digest }}' > release/image-digest.txt
+          tar -czf "release/marktake-${GITHUB_REF_NAME}.tar.gz" \
+            compose.yaml .env.example README.md docs/deployment.md LICENSE
+          cd release
+          sha256sum "marktake-${GITHUB_REF_NAME}.tar.gz" > checksums.txt
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
+        with:
+          generate_release_notes: true
+          body: |
+            Marktake ${{ github.ref_name }} is a focused self-hosted review server.
+
+            Container: `ghcr.io/${{ github.repository }}:${{ steps.meta.outputs.version }}`
+            Digest: `${{ steps.image.outputs.digest }}`
+
+            Read the changelog and deployment guide before updating. The review
+            server stores video on your own persistent volume. The public landing
+            page does not host review media.
+          files: |
+            release/marktake-${{ github.ref_name }}.tar.gz
+            release/checksums.txt
+            release/image-digest.txt
+            release/compose.yaml
+            release/.env.example

@@ -1,0 +1,32 @@
+name: Focused feature request
+description: Propose a small improvement within the documented boundary
+title: "[Feature] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: job
+    attributes:
+      label: User job
+      description: What review job is blocked, and for which user?
+    validations:
+      required: true
+  - type: textarea
+    id: workaround
+    attributes:
+      label: Current workaround
+    validations:
+      required: true
+  - type: textarea
+    id: smallest
+    attributes:
+      label: Smallest useful change
+      description: Explain why this does not require a media library, editor, or hosting service.
+    validations:
+      required: true
+  - type: checkboxes
+    id: boundary
+    attributes:
+      label: Boundary check
+      options:
+        - label: I reviewed ROADMAP.md and the explicit non-goals.
+          required: true

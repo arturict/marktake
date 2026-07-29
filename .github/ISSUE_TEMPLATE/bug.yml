@@ -1,0 +1,44 @@
+name: Bug report
+description: Report a reproducible problem in a supported release
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: Do not report security issues here. Use private vulnerability reporting.
+  - type: input
+    id: version
+    attributes:
+      label: Marktake version or image digest
+      placeholder: v0.1.0 or sha256:...
+    validations:
+      required: true
+  - type: dropdown
+    id: browser
+    attributes:
+      label: Browser
+      options:
+        - Chromium or Chrome
+        - Firefox
+        - Safari or WebKit
+        - Not browser-related
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Provide minimal steps using non-sensitive test media.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected and actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Redacted logs
+      description: Remove cookies, tokens, private URLs, filenames, and client data.

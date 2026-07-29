@@ -1,0 +1,131 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Install pnpm
+        uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+        with:
+          version: 11.16.0
+      - name: Install Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Run static, test, and build gates
+        run: pnpm check
+      - name: Enforce core coverage
+        run: pnpm test:coverage
+      - name: Audit production dependencies
+        run: pnpm audit --prod --audit-level high
+
+  browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Install pnpm
+        uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+        with:
+          version: 11.16.0
+      - name: Install Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Install dependencies and browsers
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm exec playwright install --with-deps chromium firefox webkit
+      - name: Build release image
+        run: docker build --tag marktake:ci .
+      - name: Generate synthetic CFR fixture
+        run: |
+          mkdir -p work/fixtures
+          chmod 777 work/fixtures
+          docker run --rm --user root --entrypoint ffmpeg \
+            --volume "$PWD/work/fixtures:/fixtures" marktake:ci \
+            -hide_banner -loglevel error \
+            -f lavfi -i "testsrc2=size=1280x720:rate=24" \
+            -f lavfi -i "sine=frequency=440:sample_rate=48000" \
+            -t 3 -c:v libx264 -pix_fmt yuv420p -r 24 -c:a aac \
+            -movflags +faststart /fixtures/marktake-test.mp4
+      - name: Start release image
+        run: |
+          docker run --detach --name marktake-e2e --publish 4180:4180 \
+            --env MARKTAKE_ADMIN_PASSWORD=ci-browser-test-password \
+            --env MARKTAKE_PUBLIC_URL=http://127.0.0.1:4180 \
+            marktake:ci
+          for attempt in $(seq 1 40); do
+            if [ "$(docker inspect --format '{{.State.Health.Status}}' marktake-e2e)" = "healthy" ]; then
+              exit 0
+            fi
+            sleep 1
+          done
+          docker logs marktake-e2e
+          exit 1
+      - name: Run creator and guest journey
+        env:
+          MARKTAKE_E2E_URL: http://127.0.0.1:4180
+          MARKTAKE_E2E_ADMIN_PASSWORD: ci-browser-test-password
+        run: pnpm e2e
+      - name: Verify the static landing page
+        run: |
+          pnpm --filter @marktake/landing exec vite preview \
+            --host 127.0.0.1 --port 4175 > /tmp/marktake-landing.log 2>&1 &
+          for attempt in $(seq 1 20); do
+            if curl --fail --silent http://127.0.0.1:4175/ > /dev/null; then
+              pnpm --filter @marktake/landing verify
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/marktake-landing.log
+          exit 1
+      - name: Show container logs
+        if: always()
+        run: docker logs marktake-e2e || true
+      - name: Upload browser diagnostics
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+            apps/landing/work/landing-verification/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  secrets:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check out full history
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - name: Scan for committed secrets
+        uses: gitleaks/gitleaks-action@dcedce43c6f43de0b836d1fe38946645c9c638dc # v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,29 @@
+{
+  "name": "@marktake/server",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsc -p tsconfig.build.json",
+    "dev": "tsx --conditions=development watch src/main.ts",
+    "start": "node dist/main.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fastify/cookie": "11.0.2",
+    "@fastify/helmet": "13.0.1",
+    "@fastify/multipart": "9.0.3",
+    "@fastify/rate-limit": "10.3.0",
+    "@fastify/static": "10.1.2",
+    "@marktake/shared": "workspace:*",
+    "fastify": "5.10.0",
+    "file-type": "21.3.4",
+    "zod": "4.0.10"
+  },
+  "devDependencies": {
+    "@types/node": "24.1.0",
+    "tsx": "4.20.3",
+    "typescript": "5.8.3"
+  }
+}

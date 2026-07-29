@@ -1,0 +1,15 @@
+node_modules/
+dist/
+coverage/
+playwright-report/
+test-results/
+.env
+.env.local
+.DS_Store
+Thumbs.db
+.marktake/
+.vercel/
+apps/landing/.vercel/
+apps/web/.vite/
+work/
+*.log

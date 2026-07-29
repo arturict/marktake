@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Marktake | Self-hosted video review without the media suite</title>
+    <meta
+      name="description"
+      content="A focused, open-source review server for browser-ready video cuts. Frame notes, on-image marks, threads, versions, and guest approvals in one container."
+    />
+    <link rel="canonical" href="https://marktake.vercel.app/" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#0b0d11" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Marktake" />
+    <meta property="og:title" content="Marktake | Review the cut, mark the moment" />
+    <meta
+      property="og:description"
+      content="A focused, self-hosted review server for browser-ready video cuts."
+    />
+    <meta property="og:url" content="https://marktake.vercel.app/" />
+    <meta property="og:image" content="https://marktake.vercel.app/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="https://marktake.vercel.app/og.png" />
+    <script type="module" src="/src/main.ts"></script>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header">
+      <a class="brand" href="/" aria-label="Marktake home">
+        <span aria-hidden="true">M</span>
+        <strong>Marktake</strong>
+      </a>
+      <button
+        class="menu-button"
+        type="button"
+        aria-expanded="false"
+        aria-controls="nav"
+      >
+        Menu
+      </button>
+      <nav id="nav" aria-label="Primary">
+        <a href="#demo">Demo</a>
+        <a href="#boundary">Boundary</a>
+        <a href="#install">Install</a>
+        <a href="https://github.com/arturict/marktake">GitHub</a>
+      </nav>
+    </header>
+
+    <main id="main">
+      <section class="hero">
+        <div class="hero-grid">
+          <div class="hero-copy">
+            <p class="eyebrow">
+              <span></span> Open source · one container · your storage
+            </p>
+            <h1>Review the cut.<br /><em>Mark the moment.</em></h1>
+            <p class="lede">
+              A focused review server for editors and small creative teams. Send one
+              private link, get precise frame notes and markups, and capture a clear
+              decision without adopting a media suite.
+            </p>
+            <div class="hero-actions">
+              <a class="primary" href="#install">Install Marktake</a>
+              <a class="secondary" href="https://github.com/arturict/marktake">
+                View source <span aria-hidden="true">↗</span>
+              </a>
+            </div>
+            <dl class="hero-facts">
+              <div>
+                <dt>Runtime</dt>
+                <dd>Node + SQLite</dd>
+              </div>
+              <div>
+                <dt>Media</dt>
+                <dd>MP4 / WebM CFR</dd>
+              </div>
+              <div>
+                <dt>License</dt>
+                <dd>MIT</dd>
+              </div>
+            </dl>
+          </div>
+          <div class="hero-visual" aria-label="Marktake workflow preview">
+            <div class="frame-chip">00:00:18:12</div>
+            <div class="film-frame">
+              <div class="film-noise"></div>
+              <span class="pin pin-a"></span>
+              <span class="pin pin-b"></span>
+              <svg viewBox="0 0 500 320" aria-hidden="true">
+                <path d="M110 230 C170 150 270 250 390 110" />
+                <path d="M365 102 L394 108 L380 133" />
+              </svg>
+              <div class="visual-caption">
+                <span>V3 · launch cut</span>
+                <strong>One frame. One clear change.</strong>
+              </div>
+            </div>
+            <div class="note-card">
+              <span class="note-index">07</span>
+              <div>
+                <small>Casey · 00:00:18:12</small>
+                <p>Ease the logo out two frames later.</p>
+              </div>
+              <span class="open-status">OPEN</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="proof-strip" aria-label="Product boundaries">
+        <span>No reviewer account</span>
+        <span>No telemetry</span>
+        <span>No second media cloud</span>
+        <span>No transcoding queue</span>
+      </section>
+
+      <section class="section problem" id="boundary">
+        <div class="section-label">01 / The useful middle</div>
+        <div class="problem-grid">
+          <div>
+            <h2>Not another Frame.io clone.</h2>
+            <p class="section-lede">
+              Marktake stops where a small review workflow stops. It does not become
+              your editor, asset library, project suite, or hosting company.
+            </p>
+          </div>
+          <div class="boundary-list">
+            <article>
+              <span>Keep</span>
+              <h3>Precise feedback</h3>
+              <p>
+                Rational frame mapping, time-linked notes, on-image marks, and threads.
+              </p>
+            </article>
+            <article>
+              <span>Keep</span>
+              <h3>Simple decisions</h3>
+              <p>
+                Versions, resolved notes, approval, and change requests in one room.
+              </p>
+            </article>
+            <article class="exclude">
+              <span>Cut</span>
+              <h3>Platform gravity</h3>
+              <p>
+                No MAM, AI, live co-watch, NLE plug-ins, S3, queues, or broad formats.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section demo" id="demo">
+        <div class="demo-heading">
+          <div>
+            <div class="section-label">02 / Real product, real container</div>
+            <h2>A guest review in one link.</h2>
+          </div>
+          <p>
+            This image comes from the tested creator and guest journey, using a
+            synthetic CFR fixture. It is not a mockup.
+          </p>
+        </div>
+        <figure class="product-shot">
+          <img
+            src="/guest-review.png"
+            width="1280"
+            height="786"
+            loading="lazy"
+            alt="Marktake guest review with a video, frame tools, and one pinned comment"
+          />
+          <figcaption>
+            Native playback · authenticated byte ranges · normalized markups · clear
+            status
+          </figcaption>
+        </figure>
+      </section>
+
+      <section class="section flow">
+        <div class="section-label">03 / One review loop</div>
+        <ol>
+          <li>
+            <span>01</span>
+            <h3>Export a review copy</h3>
+            <p>H.264 MP4 or VP8/VP9 WebM at a constant frame rate.</p>
+          </li>
+          <li>
+            <span>02</span>
+            <h3>Send a private link</h3>
+            <p>
+              The guest secret stays in the URL fragment and becomes a secure session.
+            </p>
+          </li>
+          <li>
+            <span>03</span>
+            <h3>Resolve the cut</h3>
+            <p>Reply, resolve, upload the next version, and record the decision.</p>
+          </li>
+        </ol>
+      </section>
+
+      <section class="section architecture">
+        <div class="arch-copy">
+          <div class="section-label">04 / Local by architecture</div>
+          <h2>One process. One volume. No hidden media path.</h2>
+          <p>
+            FFprobe validates the real streams. FFmpeg strips container metadata by
+            remuxing without re-encoding. SQLite keeps the review state beside
+            random-name media files.
+          </p>
+          <a href="https://github.com/arturict/marktake/blob/main/docs/architecture.md">
+            Read the security boundaries <span aria-hidden="true">↗</span>
+          </a>
+        </div>
+        <div
+          class="arch-diagram"
+          role="img"
+          aria-label="Browser connects to one Marktake container and one local volume"
+        >
+          <div class="node browser-node">Browser</div>
+          <div class="connector"><span></span>HTTPS</div>
+          <div class="container-node">
+            <strong>Marktake container</strong>
+            <span>Fastify</span><span>React</span><span>FFmpeg</span>
+          </div>
+          <div class="connector"><span></span>local</div>
+          <div class="node volume-node">SQLite + review copies</div>
+        </div>
+      </section>
+
+      <section class="section install" id="install">
+        <div>
+          <div class="section-label">05 / Start with one cut</div>
+          <h2>Run it where your review media belongs.</h2>
+          <p>
+            Marktake is free software. Your costs are the machine, storage, bandwidth,
+            domain, TLS, backups, and operations you choose. This static Vercel site
+            does not host your videos.
+          </p>
+        </div>
+        <div class="command-card">
+          <div class="command-top">
+            <span>Docker Compose</span>
+            <button
+              type="button"
+              data-copy='git clone https://github.com/arturict/marktake.git&#10;cd marktake&#10;export MARKTAKE_ADMIN_PASSWORD="choose-a-long-random-password"&#10;docker compose up -d'
+            >
+              Copy
+            </button>
+          </div>
+          <pre
+            tabindex="0"
+            aria-label="Docker Compose installation command"
+          ><code><span>git clone</span> https://github.com/arturict/marktake.git
+<span>cd</span> marktake
+<span>export</span> MARKTAKE_ADMIN_PASSWORD="choose-a-long-random-password"
+<span>docker compose</span> up -d</code></pre>
+          <p>
+            Use HTTPS and secure cookies before exposing an instance to the internet.
+          </p>
+        </div>
+      </section>
+
+      <section class="final-cta">
+        <p class="eyebrow"><span></span> Marktake v0.1</p>
+        <h2>The cut is ready for a clearer review.</h2>
+        <div>
+          <a
+            class="primary"
+            href="https://github.com/arturict/marktake/releases/latest"
+          >
+            Get the release
+          </a>
+          <a class="secondary" href="https://github.com/arturict/marktake/issues">
+            Give feedback
+          </a>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="brand">
+        <span aria-hidden="true">M</span>
+        <strong>Marktake</strong>
+      </div>
+      <p>Independent open-source software. Not affiliated with Frame.io or Adobe.</p>
+      <nav aria-label="Footer">
+        <a href="https://github.com/arturict/marktake">Source</a>
+        <a href="https://github.com/arturict/marktake/blob/main/SECURITY.md"
+          >Security</a
+        >
+        <a href="https://github.com/arturict/marktake/blob/main/LICENSE">MIT</a>
+      </nav>
+    </footer>
+  </body>
+</html>
