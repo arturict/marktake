@@ -1,4 +1,4 @@
-FROM node:24-bookworm-slim AS build
+FROM node:26-bookworm-slim AS build
 
 ARG PNPM_VERSION=11.16.0
 WORKDIR /workspace
@@ -17,7 +17,7 @@ COPY packages/shared packages/shared
 RUN pnpm build \
   && pnpm --filter @marktake/server deploy --prod /release/server
 
-FROM node:24-bookworm-slim AS runtime
+FROM node:26-bookworm-slim AS runtime
 
 LABEL org.opencontainers.image.title="Marktake" \
   org.opencontainers.image.description="Focused, self-hosted review server for browser-ready video cuts" \
