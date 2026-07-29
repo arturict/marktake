@@ -56,6 +56,46 @@ export type MediaTools = {
 export class UploadLimitError extends Error {}
 export class UnsupportedMediaError extends Error {}
 
+export async function createExampleMedia(
+  destinationPath: string,
+  config: AppConfig,
+): Promise<void> {
+  try {
+    await execFile(
+      config.ffmpegPath,
+      [
+        "-nostdin",
+        "-v",
+        "error",
+        "-y",
+        "-f",
+        "lavfi",
+        "-i",
+        "testsrc2=size=960x540:rate=24:duration=6",
+        "-an",
+        "-c:v",
+        "libvpx-vp9",
+        "-deadline",
+        "realtime",
+        "-cpu-used",
+        "6",
+        "-crf",
+        "38",
+        "-b:v",
+        "0",
+        "-pix_fmt",
+        "yuv420p",
+        destinationPath,
+      ],
+      { windowsHide: true, maxBuffer: 1024 * 1024 },
+    );
+  } catch {
+    throw new UnsupportedMediaError(
+      "The local example could not be generated. Check the server ffmpeg installation.",
+    );
+  }
+}
+
 class ByteLimiter extends Transform {
   private seen = 0;
   constructor(private readonly limit: number) {
