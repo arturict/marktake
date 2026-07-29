@@ -319,6 +319,9 @@ describe("HTTP security boundaries", () => {
 
     const health = await app.inject({ method: "GET", url: "/api/health" });
     expect(health.headers["content-security-policy"]).toContain("script-src 'self'");
+    expect(health.headers["content-security-policy"]).not.toContain(
+      "upgrade-insecure-requests",
+    );
   });
 
   it("serves authenticated byte ranges and rejects invalid ranges", async () => {

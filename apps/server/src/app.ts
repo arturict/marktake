@@ -243,6 +243,7 @@ export async function createApp(
         baseUri: ["'none'"],
         formAction: ["'self'"],
         frameAncestors: ["'none'"],
+        upgradeInsecureRequests: null,
       },
     },
     crossOriginResourcePolicy: { policy: "same-origin" },

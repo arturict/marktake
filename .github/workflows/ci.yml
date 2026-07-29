@@ -88,6 +88,7 @@ jobs:
         env:
           MARKTAKE_E2E_URL: http://127.0.0.1:4180
           MARKTAKE_E2E_ADMIN_PASSWORD: ci-browser-test-password
+          MARKTAKE_E2E_SYSTEM_CHROME: "true"
         run: pnpm e2e
       - name: Verify the static landing page
         run: |
