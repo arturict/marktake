@@ -6,7 +6,14 @@ All notable changes are documented here. The format follows
 
 ## [Unreleased]
 
-No unreleased changes.
+### Changed
+
+- Rebuilt the public landing page around a direct, product-first editorial
+  presentation with the tested guest-review screenshot in the hero.
+- Corrected the product research after `lawn.video` was identified as the intended
+  reference, while documenting Marktake's distinct self-hosted release boundary.
+- Extended landing verification with canonical and Open Graph checks plus an
+  initial request and transfer budget.
 
 ## [0.1.0] - 2026-07-29
 

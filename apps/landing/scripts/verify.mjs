@@ -31,7 +31,26 @@ for (const viewport of [
   const response = await page.goto(baseUrl, { waitUntil: "networkidle" });
   assert.equal(response?.status(), 200);
   assert.match(await page.title(), /Marktake/u);
-  await page.locator("#demo").scrollIntoViewIfNeeded();
+  assert.equal(
+    await page.locator('link[rel="canonical"]').getAttribute("href"),
+    "https://marktake.vercel.app/",
+  );
+  assert.equal(
+    await page.locator('meta[property="og:image"]').getAttribute("content"),
+    "https://marktake.vercel.app/og.png",
+  );
+  await page.locator("#product").scrollIntoViewIfNeeded();
+  await page
+    .getByRole("heading", { name: "Feedback that lands on the frame." })
+    .waitFor();
+  assert.equal(
+    await page.getByRole("link", { name: "RUN IT YOURSELF" }).getAttribute("href"),
+    "#install",
+  );
+  assert.equal(
+    await page.getByRole("link", { name: "GET V0.1.0" }).getAttribute("href"),
+    "https://github.com/arturict/marktake/releases/latest",
+  );
   assert.equal(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth,
@@ -50,6 +69,25 @@ for (const viewport of [
   assert.deepEqual(errors, []);
   assert.deepEqual(failedRequests, []);
 
+  const performance = await page.evaluate(() => {
+    const [navigation] = performance.getEntriesByType("navigation");
+    const resources = performance.getEntriesByType("resource");
+    return {
+      domContentLoadedMs: Math.round(navigation?.domContentLoadedEventEnd ?? 0),
+      loadMs: Math.round(navigation?.loadEventEnd ?? 0),
+      resourceCount: resources.length + 1,
+      transferBytes: Math.round(
+        (navigation?.transferSize ?? 0) +
+          resources.reduce((total, resource) => total + resource.transferSize, 0),
+      ),
+    };
+  });
+  assert.ok(performance.resourceCount <= 8, "initial page makes too many requests");
+  assert.ok(
+    performance.transferBytes <= 2_000_000,
+    "initial page exceeds the 2 MB transfer budget",
+  );
+
   await page.screenshot({
     path: `work/landing-verification/${viewport.name}.png`,
     fullPage: true,
@@ -60,6 +98,7 @@ for (const viewport of [
     seriousOrCriticalA11yViolations: materialViolations.length,
     consoleErrors: errors.length,
     failedRequests: failedRequests.length,
+    performance,
   });
   await context.close();
 }
