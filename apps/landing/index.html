@@ -8,6 +8,7 @@
       name="description"
       content="A focused, open-source video review server. Share one private link, collect frame notes and markups, and keep every review copy on storage you control."
     />
+    <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1" />
     <link rel="canonical" href="https://marktake.vercel.app/" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <meta name="theme-color" content="#f3f0e6" />
@@ -27,6 +28,34 @@
     <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:image" content="https://marktake.vercel.app/og.png" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": ["SoftwareApplication", "SoftwareSourceCode"],
+        "name": "Marktake",
+        "url": "https://marktake.vercel.app/",
+        "codeRepository": "https://github.com/arturict/marktake",
+        "downloadUrl": "https://github.com/arturict/marktake/releases/latest",
+        "applicationCategory": "MultimediaApplication",
+        "operatingSystem": "Linux, Docker",
+        "softwareVersion": "0.1.0",
+        "license": "https://opensource.org/license/mit",
+        "isAccessibleForFree": true,
+        "description": "An open-source, self-hosted video review server for frame notes, image markups, versions, guest decisions, and review copies on storage you control.",
+        "featureList": [
+          "Frame-precise video notes",
+          "On-image review markups",
+          "Private guest review links",
+          "Version and decision tracking",
+          "Self-hosted review storage"
+        ],
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        }
+      }
+    </script>
     <script type="module" src="/src/main.ts"></script>
     <link rel="stylesheet" href="/src/styles.css" />
   </head>
