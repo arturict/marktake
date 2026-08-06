@@ -47,14 +47,20 @@
         <a href="#product">Product</a>
         <a href="#scope">Scope</a>
         <a href="#install">Install</a>
-        <a class="nav-source" href="https://github.com/arturict/marktake">
+        <a
+          class="nav-source"
+          href="https://github.com/arturict/marktake"
+          data-analytics-action="view-source"
+          data-analytics-location="nav"
+          data-analytics-target="github"
+        >
           GitHub <span aria-hidden="true">↗</span>
         </a>
       </nav>
     </header>
 
     <main id="main">
-      <section class="hero">
+      <section class="hero" data-analytics-section="hero">
         <div class="hero-copy">
           <p class="poster-label">SELF-HOSTED VIDEO REVIEW / MIT / V0.1</p>
           <h1>
@@ -66,8 +72,22 @@
               media platform.
             </p>
             <div class="hero-actions">
-              <a class="button button-dark" href="#install">RUN IT YOURSELF</a>
-              <a class="button button-paper" href="#product">SEE THE PRODUCT</a>
+              <a
+                class="button button-dark"
+                href="#install"
+                data-analytics-action="run-self-hosted"
+                data-analytics-location="hero"
+                data-analytics-target="install"
+                >RUN IT YOURSELF</a
+              >
+              <a
+                class="button button-paper"
+                href="#product"
+                data-analytics-action="see-product"
+                data-analytics-location="hero"
+                data-analytics-target="product"
+                >SEE THE PRODUCT</a
+              >
             </div>
           </div>
         </div>
@@ -97,7 +117,7 @@
         <p>GET A DECISION.</p>
       </section>
 
-      <section class="section product" id="product">
+      <section class="section product" id="product" data-analytics-section="product">
         <div class="section-head">
           <p class="section-index">/01 THE ACTUAL PRODUCT</p>
           <h2>Feedback that lands on the frame.</h2>
@@ -155,7 +175,7 @@
         </figure>
       </section>
 
-      <section class="section review-loop">
+      <section class="section review-loop" data-analytics-section="review-loop">
         <div class="section-head compact">
           <p class="section-index">/03 THREE MOVES</p>
           <h2>From export to answer.</h2>
@@ -189,7 +209,7 @@
         </ol>
       </section>
 
-      <section class="scope" id="scope">
+      <section class="scope" id="scope" data-analytics-section="scope">
         <div class="scope-title">
           <p class="section-index">/04 THE BOUNDARY</p>
           <h2>Small on purpose.</h2>
@@ -221,7 +241,7 @@
         </div>
       </section>
 
-      <section class="section ownership">
+      <section class="section ownership" data-analytics-section="ownership">
         <div class="ownership-copy">
           <p class="section-index">/05 ONE CONTAINER</p>
           <h2>Your review media stays where you put it.</h2>
@@ -230,7 +250,12 @@
             randomly named review copies live together in one persistent volume. FFmpeg
             validates and strips container metadata without transcoding.
           </p>
-          <a href="https://github.com/arturict/marktake/blob/main/docs/architecture.md">
+          <a
+            href="https://github.com/arturict/marktake/blob/main/docs/architecture.md"
+            data-analytics-action="read-architecture"
+            data-analytics-location="ownership"
+            data-analytics-target="architecture"
+          >
             READ THE ARCHITECTURE <span aria-hidden="true">↗</span>
           </a>
         </div>
@@ -252,7 +277,7 @@
         </div>
       </section>
 
-      <section class="install" id="install">
+      <section class="install" id="install" data-analytics-section="install">
         <div class="install-copy">
           <p class="section-index">/06 START HERE</p>
           <h2>ONE CUT.<br />ONE VOLUME.<br />YOUR SERVER.</h2>
@@ -285,19 +310,25 @@
         </div>
       </section>
 
-      <section class="final-cta">
+      <section class="final-cta" data-analytics-section="final">
         <p>READY FOR A LESS VAGUE REVIEW?</p>
         <h2>MARK THE MOMENT.<br />MOVE THE CUT.</h2>
         <div>
           <a
             class="button button-acid"
             href="https://github.com/arturict/marktake/releases/latest"
+            data-analytics-action="download-release"
+            data-analytics-location="final"
+            data-analytics-target="releases"
           >
             GET V0.1.0
           </a>
           <a
             class="button button-outline"
             href="https://github.com/arturict/marktake/issues"
+            data-analytics-action="give-feedback"
+            data-analytics-location="final"
+            data-analytics-target="issues"
           >
             GIVE FEEDBACK
           </a>
@@ -307,7 +338,10 @@
 
     <footer>
       <a class="wordmark" href="/" aria-label="Marktake home">MARK/TAKE</a>
-      <p>Independent MIT software. Not affiliated with Frame.io or Adobe.</p>
+      <p>
+        Independent MIT software. The self-hosted product has no telemetry; this public
+        site uses cookie-free, self-hosted aggregate analytics.
+      </p>
       <nav aria-label="Footer">
         <a href="https://github.com/arturict/marktake">Source</a>
         <a href="https://github.com/arturict/marktake/blob/main/SECURITY.md"

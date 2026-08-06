@@ -14,6 +14,8 @@ All notable changes are documented here. The format follows
   reference, while documenting Marktake's distinct self-hosted release boundary.
 - Extended landing verification with canonical and Open Graph checks plus an
   initial request and transfer budget.
+- Added privacy-conscious, self-hosted analytics to the public production
+  landing page while keeping self-hosted Marktake instances telemetry-free.
 
 ## [0.1.0] - 2026-07-29
 

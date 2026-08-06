@@ -1,3 +1,14 @@
+import { isProductionLandingLocation, startLandingAnalytics } from "./analytics.js";
+
+const analyticsEnabled = isProductionLandingLocation(window.location);
+startLandingAnalytics({
+  websiteId: analyticsEnabled
+    ? (import.meta.env.VITE_UMAMI_WEBSITE_ID ?? "02b557b8-d6b9-40e2-bf7c-7d78285a0395")
+    : "",
+  scriptUrl:
+    import.meta.env.VITE_UMAMI_SCRIPT_URL ?? "https://umami.arturf.ch/script.js",
+});
+
 const menu = document.querySelector<HTMLButtonElement>(".menu-button");
 const navigation = document.querySelector<HTMLElement>("#nav");
 
