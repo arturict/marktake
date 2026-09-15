@@ -28,6 +28,7 @@ import {
 import type { AppConfig } from "./config.js";
 import { MarktakeDatabase, type SessionRow } from "./db.js";
 import {
+  createExampleMedia,
   createMediaTools,
   type MediaTools,
   storeUpload,
@@ -49,6 +50,7 @@ const sevenDays = 7 * 24 * 60 * 60 * 1_000;
 type AppDependencies = {
   database?: MarktakeDatabase;
   mediaTools?: MediaTools;
+  generateExampleMedia?: (destinationPath: string) => Promise<void>;
   now?: () => Date;
 };
 
@@ -201,6 +203,9 @@ export async function createApp(
   ]);
   const database = dependencies.database ?? new MarktakeDatabase(config.databasePath);
   const mediaTools = dependencies.mediaTools ?? createMediaTools(config);
+  const generateExampleMedia =
+    dependencies.generateExampleMedia ??
+    ((destinationPath: string) => createExampleMedia(destinationPath, config));
   const now = dependencies.now ?? (() => new Date());
   const app = Fastify({
     logger:
@@ -377,6 +382,45 @@ export async function createApp(
     const id = randomUUID();
     database.createProject(id, body.title, current.toISOString());
     return reply.code(201).send({ id, title: body.title });
+  });
+
+  app.post("/api/projects/example", async (request, reply) => {
+    const current = now();
+    const session = requireAdmin(request, reply, database, current);
+    if (!session || !requireWriteAuthorization(request, reply, session, config)) return;
+
+    const sourcePath = path.join(config.tempDir, `${randomUUID()}.example.webm`);
+    let storedName: string | undefined;
+    try {
+      await generateExampleMedia(sourcePath);
+      const stored = await storeUpload({
+        source: createReadStream(sourcePath),
+        filename: "marktake-generated-example.webm",
+        config,
+        mediaTools,
+        existingStorageBytes: database.storageBytes(),
+      });
+      storedName = stored.storedName;
+      const projectId = randomUUID();
+      const versionId = randomUUID();
+      database.createProject(projectId, "Example review", current.toISOString());
+      database.createVersion({
+        id: versionId,
+        projectId,
+        ordinal: 1,
+        label: "Generated practice cut",
+        ...stored,
+        createdAt: current.toISOString(),
+      });
+      return await reply.code(201).send({ id: projectId, versionId });
+    } catch (error) {
+      if (storedName) {
+        await rm(path.join(config.storageDir, storedName), { force: true });
+      }
+      throw error;
+    } finally {
+      await rm(sourcePath, { force: true });
+    }
   });
 
   app.get<{ Params: ProjectParams }>(

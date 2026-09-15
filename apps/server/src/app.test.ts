@@ -1,11 +1,12 @@
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import type { FastifyInstance } from "fastify";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { AppConfig } from "./config.js";
 import { MarktakeDatabase } from "./db.js";
 import { createApp } from "./app.js";
+import type { MediaTools } from "./media.js";
 
 type TestContext = {
   app: FastifyInstance;
@@ -21,6 +22,14 @@ type Auth = {
 
 const contexts: TestContext[] = [];
 const now = new Date("2026-07-29T10:00:00.000Z");
+
+function mp4Bytes(payloadSize = 32): Buffer {
+  return Buffer.concat([
+    Buffer.from([0, 0, 0, 24]),
+    Buffer.from("ftypmp42", "ascii"),
+    Buffer.alloc(payloadSize, 1),
+  ]);
+}
 
 function responseCookie(header: string | string[] | undefined): string {
   const value = Array.isArray(header) ? header[0] : header;
@@ -52,6 +61,19 @@ async function createContext(): Promise<TestContext> {
     mkdir(config.tempDir, { recursive: true }),
   ]);
   const database = new MarktakeDatabase(config.databasePath);
+  const mediaTools: MediaTools = {
+    inspect: vi.fn(() =>
+      Promise.resolve({
+        mime: "video/mp4" as const,
+        durationMs: 6_000,
+        fpsNumerator: 24,
+        fpsDenominator: 1,
+        width: 960,
+        height: 540,
+      }),
+    ),
+    remux: vi.fn(async (source, destination) => copyFile(source, destination)),
+  };
   for (const project of [
     { id: "project-a", title: "Launch cut", version: "version-a", file: "a.mp4" },
     {
@@ -80,7 +102,13 @@ async function createContext(): Promise<TestContext> {
     });
     await writeFile(path.join(config.storageDir, project.file), Buffer.alloc(16, 7));
   }
-  const app = await createApp(config, { database, now: () => now });
+  const app = await createApp(config, {
+    database,
+    mediaTools,
+    generateExampleMedia: async (destinationPath) =>
+      writeFile(destinationPath, mp4Bytes()),
+    now: () => now,
+  });
   const context = { app, config, database, directory };
   contexts.push(context);
   return context;
@@ -155,6 +183,35 @@ describe("HTTP security boundaries", () => {
       payload: { title: "Accepted project" },
     });
     expect(accepted.statusCode).toBe(201);
+  });
+
+  it("creates a real local example project without a download or external service", async () => {
+    const { app, database } = await createContext();
+    const auth = await login(app);
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/projects/example",
+      headers: {
+        cookie: auth.cookie,
+        "x-csrf-token": auth.csrf,
+        origin: "http://marktake.test",
+      },
+    });
+
+    expect(response.statusCode).toBe(201);
+    const body = response.json<{ id: string; versionId: string }>();
+    const project = database.getReviewProject(body.id);
+    expect(project?.title).toBe("Example review");
+    expect(project?.versions).toHaveLength(1);
+    expect(project?.versions[0]).toMatchObject({
+      id: body.versionId,
+      label: "Generated practice cut",
+      durationMs: 6_000,
+      fpsNumerator: 24,
+      fpsDenominator: 1,
+      width: 960,
+      height: 540,
+    });
   });
 
   it("keeps guest secrets in the URL fragment, stores only a hash, and enforces IDOR scope", async () => {

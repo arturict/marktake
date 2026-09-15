@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ReviewProject, SessionInfo } from "@marktake/shared";
 import { api } from "../api.js";
 import { Brand } from "./Brand.js";
@@ -29,14 +29,17 @@ export function AdminHome({
   onReview: (projectId: string) => void;
   onLogout: () => void;
 }): React.JSX.Element {
-  const [projects, setProjects] = useState<ProjectSummary[]>([]);
+  const [projects, setProjects] = useState<ProjectSummary[] | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState("");
+  const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
+  const projectTitleRef = useRef<HTMLInputElement>(null);
 
   const refresh = useCallback(async () => {
     const result = await api<{ projects: ProjectSummary[] }>("/api/projects");
     setProjects(result.projects);
+    setError("");
   }, []);
 
   useEffect(() => {
@@ -44,6 +47,25 @@ export function AdminHome({
       setError(reason instanceof Error ? reason.message : "Could not load projects."),
     );
   }, [refresh]);
+
+  const createExample = async (): Promise<void> => {
+    setBusy("example");
+    setError("");
+    try {
+      const created = await api<{ id: string }>("/api/projects/example", {
+        method: "POST",
+      });
+      onReview(created.id);
+    } catch (reason) {
+      setError(
+        reason instanceof Error
+          ? reason.message
+          : "Could not create the local example.",
+      );
+    } finally {
+      setBusy("");
+    }
+  };
 
   if (selectedId) {
     return (
@@ -83,6 +105,7 @@ export function AdminHome({
             className="new-project-form"
             onSubmit={async (event) => {
               event.preventDefault();
+              setBusy("project");
               setError("");
               try {
                 const created = await api<{ id: string }>("/api/projects", {
@@ -98,6 +121,8 @@ export function AdminHome({
                     ? reason.message
                     : "Could not create project.",
                 );
+              } finally {
+                setBusy("");
               }
             }}
           >
@@ -105,6 +130,7 @@ export function AdminHome({
               Project title
             </label>
             <input
+              ref={projectTitleRef}
               id="new-project-title"
               placeholder="Project title"
               value={newTitle}
@@ -112,14 +138,35 @@ export function AdminHome({
               maxLength={120}
               required
             />
-            <button className="primary-button" type="submit">
-              New project
+            <button className="primary-button" type="submit" disabled={Boolean(busy)}>
+              {busy === "project" ? "Creating…" : "New project"}
             </button>
+            {projects && projects.length > 0 && (
+              <button
+                className="text-button"
+                type="button"
+                disabled={Boolean(busy)}
+                onClick={() => void createExample()}
+              >
+                {busy === "example" ? "Generating example…" : "Try local example"}
+              </button>
+            )}
           </form>
         </section>
-        {error && <div className="error-banner">{error}</div>}
-        <section className="project-grid" aria-label="Projects">
-          {projects.map((project) => (
+        {error && (
+          <div className="error-banner action-banner" role="alert">
+            <span>{error}</span>
+            <button type="button" onClick={() => void refresh()}>
+              Retry
+            </button>
+          </div>
+        )}
+        <section
+          className="project-grid"
+          aria-label="Projects"
+          aria-busy={projects === null}
+        >
+          {projects?.map((project) => (
             <button
               type="button"
               className="project-card"
@@ -147,14 +194,41 @@ export function AdminHome({
               </span>
             </button>
           ))}
-          {projects.length === 0 && (
+          {projects === null && (
+            <div className="empty-state loading-state" role="status">
+              <span className="loading-indicator" aria-hidden="true" />
+              <h2>Loading local projects…</h2>
+              <p>Reading the project index from this Marktake server.</p>
+            </div>
+          )}
+          {projects?.length === 0 && (
             <div className="empty-state">
               <span className="empty-icon">01</span>
               <h2>Start with one review cut.</h2>
               <p>
-                Create a project, upload a browser-ready CFR video, and send one private
-                link.
+                Open a generated six-second practice cut, or create a project for your
+                own browser-ready video.
               </p>
+              <div className="empty-actions">
+                <button
+                  className="primary-button"
+                  type="button"
+                  disabled={Boolean(busy)}
+                  onClick={() => void createExample()}
+                >
+                  {busy === "example" ? "Generating example…" : "Open example review"}
+                </button>
+                <button
+                  className="text-button"
+                  type="button"
+                  onClick={() => projectTitleRef.current?.focus()}
+                >
+                  Create my own project
+                </button>
+              </div>
+              <small className="empty-footnote">
+                Generated locally with ffmpeg. No download or cloud account.
+              </small>
             </div>
           )}
         </section>
@@ -181,6 +255,10 @@ function ProjectSetup({
   const [latestLink, setLatestLink] = useState("");
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
+  const [uploadError, setUploadError] = useState("");
+  const [uploadSaved, setUploadSaved] = useState(false);
+  const [copyStatus, setCopyStatus] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const refresh = useCallback(async () => {
     const data = await api<{ project: ReviewProject; shares: ShareSummary[] }>(
@@ -188,6 +266,7 @@ function ProjectSetup({
     );
     setProject(data.project);
     setShares(data.shares);
+    setError("");
   }, [projectId]);
 
   useEffect(() => {
@@ -221,7 +300,14 @@ function ProjectSetup({
             storage.
           </p>
         </section>
-        {error && <div className="error-banner">{error}</div>}
+        {error && (
+          <div className="error-banner action-banner" role="alert">
+            <span>{error}</span>
+            <button type="button" onClick={() => void refresh()}>
+              Retry
+            </button>
+          </div>
+        )}
         <div className="setup-grid">
           <section className="panel upload-panel">
             <div className="panel-number">01</div>
@@ -235,6 +321,8 @@ function ProjectSetup({
                 if (!file) return;
                 setBusy("upload");
                 setError("");
+                setUploadError("");
+                setUploadSaved(false);
                 const data = new FormData();
                 data.append("label", label);
                 data.append("file", file);
@@ -249,8 +337,11 @@ function ProjectSetup({
                     document.querySelector<HTMLInputElement>("#video-upload");
                   if (input) input.value = "";
                   await refresh();
+                  setUploadSaved(true);
                 } catch (reason) {
-                  setError(reason instanceof Error ? reason.message : "Upload failed.");
+                  setUploadError(
+                    reason instanceof Error ? reason.message : "Upload failed.",
+                  );
                 } finally {
                   setBusy("");
                 }
@@ -258,10 +349,15 @@ function ProjectSetup({
             >
               <label className="drop-zone" htmlFor="video-upload">
                 <input
+                  ref={fileInputRef}
                   id="video-upload"
                   type="file"
                   accept="video/mp4,video/webm,.mp4,.webm"
-                  onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+                  onChange={(event) => {
+                    setFile(event.target.files?.[0] ?? null);
+                    setUploadError("");
+                    setUploadSaved(false);
+                  }}
                   required
                 />
                 <span className="drop-icon" aria-hidden="true">
@@ -284,8 +380,36 @@ function ProjectSetup({
                 />
               </label>
               <button className="primary-button" disabled={!file || busy === "upload"}>
-                {busy === "upload" ? "Validating and storing…" : "Add version"}
+                {busy === "upload"
+                  ? "Validating and storing…"
+                  : uploadError
+                    ? "Retry upload"
+                    : "Add version"}
               </button>
+              <div
+                className={`operation-status ${uploadError ? "is-error" : ""}`}
+                role={uploadError ? "alert" : "status"}
+                aria-live="polite"
+              >
+                {busy === "upload" && (
+                  <>
+                    <span className="loading-indicator small" aria-hidden="true" />
+                    Uploading, validating codecs, and stripping metadata. Keep this tab
+                    open.
+                  </>
+                )}
+                {uploadError && (
+                  <>
+                    <strong>Upload not saved.</strong> {uploadError} Your selected file
+                    is still ready to retry.
+                  </>
+                )}
+                {uploadSaved && !busy && (
+                  <>
+                    <span aria-hidden="true">✓</span> Version ready for review.
+                  </>
+                )}
+              </div>
             </form>
           </section>
           <section className="panel share-panel">
@@ -358,10 +482,22 @@ function ProjectSetup({
                 <code>{latestLink}</code>
                 <button
                   type="button"
-                  onClick={() => void navigator.clipboard.writeText(latestLink)}
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(latestLink);
+                      setCopyStatus("Private link copied.");
+                    } catch {
+                      setCopyStatus(
+                        "Copy was blocked. Select the link text and copy it manually.",
+                      );
+                    }
+                  }}
                 >
                   Copy
                 </button>
+                {copyStatus && (
+                  <small className="share-copy-status">{copyStatus}</small>
+                )}
               </div>
             )}
             <div className="share-list">
@@ -416,6 +552,24 @@ function ProjectSetup({
               </span>
             </div>
           ))}
+          {project && project.versions.length === 0 && (
+            <div className="version-empty">
+              <div>
+                <strong>No review copy yet.</strong>
+                <span>
+                  Add one browser-ready MP4 or WebM before opening review or creating a
+                  guest link.
+                </span>
+              </div>
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                Choose first review copy
+              </button>
+            </div>
+          )}
         </section>
       </main>
     </div>

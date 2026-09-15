@@ -99,12 +99,43 @@ export function AnnotationOverlay({
 }): React.JSX.Element {
   const [start, setStart] = useState<Point | null>(null);
 
+  const addKeyboardAnnotation = (): void => {
+    if (tool === "pin") {
+      onChange([...draft, { tool: "pin", x: 0.5, y: 0.5 }]);
+    } else if (tool === "rect") {
+      onChange([...draft, { tool: "rect", x: 0.35, y: 0.35, width: 0.3, height: 0.3 }]);
+    } else if (tool === "arrow") {
+      onChange([...draft, { tool: "arrow", x1: 0.35, y1: 0.5, x2: 0.65, y2: 0.5 }]);
+    } else {
+      onChange([
+        ...draft,
+        {
+          tool: "freehand",
+          points: [
+            [0.35, 0.55],
+            [0.5, 0.35],
+            [0.65, 0.55],
+          ],
+        },
+      ]);
+    }
+  };
+
   return (
     <svg
       className={`annotation-layer ${disabled ? "disabled" : ""}`}
       viewBox="0 0 100 100"
       preserveAspectRatio="none"
-      aria-label="Draw an annotation on the paused video"
+      role="application"
+      tabIndex={disabled ? -1 : 0}
+      aria-disabled={disabled}
+      aria-describedby="annotation-help"
+      aria-label="Annotation canvas. Use a pointer to place the selected markup, or press Enter to add it in the center."
+      onKeyDown={(event) => {
+        if (disabled || (event.key !== "Enter" && event.key !== " ")) return;
+        event.preventDefault();
+        addKeyboardAnnotation();
+      }}
       onPointerDown={(event) => {
         if (disabled) return;
         const point = pointFromEvent(event);
