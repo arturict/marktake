@@ -39,6 +39,11 @@ for (const viewport of [
     await page.locator('meta[property="og:image"]').getAttribute("content"),
     "https://marktake.vercel.app/og.png",
   );
+  assert.equal(await page.locator('script[type="application/ld+json"]').count(), 1);
+  assert.match(
+    await page.locator('script[type="application/ld+json"]').textContent(),
+    /SoftwareApplication/u,
+  );
   await page.locator("#product").scrollIntoViewIfNeeded();
   await page
     .getByRole("heading", { name: "Feedback that lands on the frame." })
@@ -103,7 +108,13 @@ for (const viewport of [
   await context.close();
 }
 
-for (const path of ["/robots.txt", "/sitemap.xml", "/og.png", "/guest-review.png"]) {
+for (const path of [
+  "/robots.txt",
+  "/sitemap.xml",
+  "/llms.txt",
+  "/og.png",
+  "/guest-review.png",
+]) {
   const response = await fetch(new URL(path, baseUrl));
   assert.equal(response.status, 200, `${path} did not return 200`);
 }
