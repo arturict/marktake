@@ -18,7 +18,7 @@
     "@fastify/static": "10.1.2",
     "@marktake/shared": "workspace:*",
     "fastify": "5.12.1",
-    "file-type": "21.3.4",
+    "file-type": "22.1.0",
     "zod": "4.0.10"
   },
   "devDependencies": {
