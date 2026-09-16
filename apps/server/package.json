@@ -15,7 +15,7 @@
     "@fastify/helmet": "13.1.1",
     "@fastify/multipart": "10.1.1",
     "@fastify/rate-limit": "10.3.0",
-    "@fastify/static": "10.1.2",
+    "@fastify/static": "10.1.3",
     "@marktake/shared": "workspace:*",
     "fastify": "5.12.1",
     "file-type": "22.1.0",
