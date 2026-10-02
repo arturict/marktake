@@ -54,6 +54,7 @@ test("a new owner reaches a saved note through the local example", async ({ page
     .getByPlaceholder("Pause, mark the frame, and describe the change…")
     .fill("Practice note saved without uploading a file.");
   await expect(page.getByText("Draft saved in this browser")).toBeVisible();
+  const draftTimecode = await page.locator(".composer-meta code").innerText();
   await page.reload();
   await page
     .getByRole("button", { name: /Example review.*version/ })
@@ -64,7 +65,7 @@ test("a new owner reaches a saved note through the local example", async ({ page
   await expect(page.getByLabel("Comment", { exact: true })).toHaveValue(
     "Practice note saved without uploading a file.",
   );
-  await expect(page.getByLabel("Current timecode 00:00:00:01")).toBeVisible();
+  await expect(page.getByLabel(`Current timecode ${draftTimecode}`)).toBeVisible();
   await expect(page.getByText("1 markups")).toBeVisible();
   await page.getByRole("button", { name: "Add frame note" }).click();
   await expect(page.getByText("Saved and sent")).toBeVisible();
