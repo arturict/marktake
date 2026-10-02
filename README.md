@@ -21,11 +21,18 @@ that middle intentionally small:
 - threaded replies, resolved state, ordered versions, and approval or change
   requests;
 - local SQLite and local review copies;
-- no analytics, external fonts, third-party media calls, AI, or background
-  transcoding service.
+- no product analytics, external fonts, third-party media calls, AI, or
+  background transcoding service.
 
 The original master remains in your edit storage. Marktake stores only the
 browser-ready copy you choose to upload.
+
+The separate public landing page uses our self-hosted Umami instance for
+aggregate page, bounded CTA, section, scroll-depth, and engaged-time events. It
+respects Do Not Track and Global Privacy Control, sets no analytics cookies, and
+receives neither review media nor activity from self-hosted Marktake instances.
+URLs are reduced to the landing root plus safe, bounded standard UTM values,
+and referrer paths are removed before sending.
 
 ## Quick start
 
