@@ -1,0 +1,9 @@
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Standard keyboard shortcut attributes, not credentials"
+condition = "AND"
+regexTarget = "line"
+paths = ['''apps/web/src/components/ReviewRoom\.tsx$''']
+regexes = ['''^\s*aria-keyshortcuts="Shift\+Arrow(Left|Right)"\s*$''']

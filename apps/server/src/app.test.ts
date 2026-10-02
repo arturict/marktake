@@ -37,7 +37,11 @@ function responseCookie(header: string | string[] | undefined): string {
   return value.split(";")[0] ?? value;
 }
 
-async function createContext(): Promise<TestContext> {
+async function createContext(
+  generateExampleMedia = async (destinationPath: string): Promise<void> => {
+    await writeFile(destinationPath, mp4Bytes());
+  },
+): Promise<TestContext> {
   const directory = await mkdtemp(path.join(tmpdir(), "marktake-app-test-"));
   const config: AppConfig = {
     adminPassword: "owner-test-password",
@@ -105,8 +109,7 @@ async function createContext(): Promise<TestContext> {
   const app = await createApp(config, {
     database,
     mediaTools,
-    generateExampleMedia: async (destinationPath) =>
-      writeFile(destinationPath, mp4Bytes()),
+    generateExampleMedia,
     now: () => now,
   });
   const context = { app, config, database, directory };
@@ -212,6 +215,92 @@ describe("HTTP security boundaries", () => {
       width: 960,
       height: 540,
     });
+  });
+
+  it("blocks unauthorized sample generation before calling ffmpeg", async () => {
+    const generate = vi.fn(() =>
+      Promise.reject(new Error("Unauthorized generator call")),
+    );
+    const { app } = await createContext(generate);
+    const unauthenticated = await app.inject({
+      method: "POST",
+      url: "/api/projects/example",
+    });
+    expect(unauthenticated.statusCode).toBe(401);
+    const auth = await login(app);
+    const missingCsrf = await app.inject({
+      method: "POST",
+      url: "/api/projects/example",
+      headers: { cookie: auth.cookie },
+    });
+    expect(missingCsrf.statusCode).toBe(403);
+    const hostileOrigin = await app.inject({
+      method: "POST",
+      url: "/api/projects/example",
+      headers: {
+        cookie: auth.cookie,
+        "x-csrf-token": auth.csrf,
+        origin: "https://attacker.invalid",
+      },
+    });
+    expect(hostileOrigin.statusCode).toBe(403);
+    expect(generate).not.toHaveBeenCalled();
+  });
+
+  it("limits repeated example requests without creating more projects", async () => {
+    const { app, database } = await createContext();
+    const auth = await login(app);
+    const request = {
+      method: "POST" as const,
+      url: "/api/projects/example",
+      headers: { cookie: auth.cookie, "x-csrf-token": auth.csrf },
+    };
+    for (let attempt = 0; attempt < 3; attempt++) {
+      expect((await app.inject(request)).statusCode).toBe(201);
+    }
+    const projectCount = database.listProjects().length;
+    const throttled = await app.inject(request);
+    expect(throttled.statusCode).toBe(429);
+    expect(throttled.headers["retry-after"]).toBeDefined();
+    expect(database.listProjects()).toHaveLength(projectCount);
+  });
+
+  it("runs only one example encoder at a time and recovers after a failure", async () => {
+    let rejectGeneration: (reason: Error) => void = () => {
+      throw new Error("Generation has not started");
+    };
+    let notifyStarted: () => void = () => {
+      throw new Error("Start signal not initialized");
+    };
+    const started = new Promise<void>((resolve) => {
+      notifyStarted = resolve;
+    });
+    const generate = vi
+      .fn()
+      .mockImplementationOnce(() => {
+        notifyStarted();
+        return new Promise<void>((_resolve, reject) => {
+          rejectGeneration = reject;
+        });
+      })
+      .mockImplementation(async (destination: string) =>
+        writeFile(destination, mp4Bytes()),
+      );
+    const { app, database } = await createContext(generate);
+    const auth = await login(app);
+    const request = {
+      method: "POST" as const,
+      url: "/api/projects/example",
+      headers: { cookie: auth.cookie, "x-csrf-token": auth.csrf },
+    };
+    const first = app.inject(request).then((response) => response);
+    await started;
+    expect((await app.inject(request)).statusCode).toBe(429);
+    expect(generate).toHaveBeenCalledTimes(1);
+    expect(database.listProjects()).toHaveLength(2);
+    rejectGeneration(new Error("Synthetic encoder failure"));
+    expect((await first).statusCode).toBe(500);
+    expect((await app.inject(request)).statusCode).toBe(201);
   });
 
   it("keeps guest secrets in the URL fragment, stores only a hash, and enforces IDOR scope", async () => {

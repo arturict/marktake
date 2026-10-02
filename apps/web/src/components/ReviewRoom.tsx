@@ -46,11 +46,12 @@ function safeLocalStorageGet(key: string): string | null {
   }
 }
 
-function safeLocalStorageSet(key: string, value: string): void {
+function safeLocalStorageSet(key: string, value: string): boolean {
   try {
     window.localStorage.setItem(key, value);
+    return true;
   } catch {
-    // A blocked storage API should not prevent a review.
+    return false;
   }
 }
 
@@ -239,9 +240,8 @@ function ReviewWorkspace({
   const [baseRevision, setBaseRevision] = useState(
     storedDraft?.baseRevision ?? currentRevision,
   );
-  const [saveState, setSaveState] = useState<SaveState>(
-    storedDraft ? "draft" : "draft",
-  );
+  const [saveState, setSaveState] = useState<SaveState>("draft");
+  const [draftPersisted, setDraftPersisted] = useState(Boolean(storedDraft));
   const [mediaState, setMediaState] = useState<MediaState>("loading");
   const [filter, setFilter] = useState<CommentFilter>("all");
   const [hasPlayed, setHasPlayed] = useState(false);
@@ -272,7 +272,7 @@ function ReviewWorkspace({
   const seekFrame = useCallback(
     (frame: number): void => {
       const video = videoRef.current;
-      if (!video) return;
+      if (!video || saveState === "saving") return;
       video.pause();
       const maxFrame = Math.max(
         0,
@@ -286,19 +286,21 @@ function ReviewWorkspace({
       setCurrentFrame(bounded);
       setHasPaused(true);
     },
-    [rate, version.durationMs, version.fpsDenominator, version.fpsNumerator],
+    [rate, saveState, version.durationMs, version.fpsDenominator, version.fpsNumerator],
   );
 
   useEffect(() => {
     if (hasDraft) {
-      safeLocalStorageSet(
-        draftStorageKey(version.id),
-        JSON.stringify({
-          body: commentBody,
-          annotations: draft,
-          frameNumber: currentFrame,
-          baseRevision,
-        }),
+      setDraftPersisted(
+        safeLocalStorageSet(
+          draftStorageKey(version.id),
+          JSON.stringify({
+            body: commentBody,
+            annotations: draft,
+            frameNumber: currentFrame,
+            baseRevision,
+          }),
+        ),
       );
     } else {
       safeLocalStorageRemove(draftStorageKey(version.id));
@@ -365,6 +367,7 @@ function ReviewWorkspace({
             </span>
             <button
               type="button"
+              disabled={saveState === "saving"}
               onClick={() => {
                 setCommentBody("");
                 setDraft([]);
@@ -439,6 +442,7 @@ function ReviewWorkspace({
               mobileReview ||
               !capabilities.canComment ||
               playing ||
+              saveState === "saving" ||
               mediaState !== "ready"
             }
           />
@@ -497,6 +501,7 @@ function ReviewWorkspace({
             <button
               type="button"
               onClick={() => seekFrame(currentFrame - 1)}
+              disabled={saveState === "saving"}
               aria-label="Previous frame"
               aria-keyshortcuts="Shift+ArrowLeft"
               title="Previous frame (Shift + Left Arrow)"
@@ -509,6 +514,7 @@ function ReviewWorkspace({
             <button
               type="button"
               onClick={() => seekFrame(currentFrame + 1)}
+              disabled={saveState === "saving"}
               aria-label="Next frame"
               aria-keyshortcuts="Shift+ArrowRight"
               title="Next frame (Shift + Right Arrow)"
@@ -523,6 +529,7 @@ function ReviewWorkspace({
                   key={item.tool}
                   type="button"
                   className={tool === item.tool ? "active" : ""}
+                  disabled={saveState === "saving"}
                   aria-pressed={tool === item.tool}
                   onClick={() => setTool(item.tool)}
                   title={item.label}
@@ -534,7 +541,7 @@ function ReviewWorkspace({
               <button
                 type="button"
                 onClick={() => updateDraft([])}
-                disabled={draft.length === 0}
+                disabled={draft.length === 0 || saveState === "saving"}
               >
                 Clear
               </button>
@@ -603,7 +610,7 @@ function ReviewWorkspace({
           onSubmit={async (event) => {
             event.preventDefault();
             const video = videoRef.current;
-            if (!video) return;
+            if (!video || saveState === "saving") return;
             video.pause();
             video.currentTime = frameToMediaTime(currentFrame, rate);
             setSaveState("saving");
@@ -621,7 +628,6 @@ function ReviewWorkspace({
               setCommentBody("");
               setDraft([]);
               safeLocalStorageRemove(draftStorageKey(version.id));
-              await onChanged();
               setHasSavedNote(true);
               setShowResume(false);
               setSaveState("saved");
@@ -629,6 +635,14 @@ function ReviewWorkspace({
               setSaveState("error");
               onError(
                 reason instanceof Error ? reason.message : "Could not save comment.",
+              );
+              return;
+            }
+            try {
+              await onChanged();
+            } catch {
+              onError(
+                "Your note was saved. Could not refresh the threads. Reload latest to see it.",
               );
             }
           }}
@@ -649,7 +663,9 @@ function ReviewWorkspace({
                   : saveState === "error"
                     ? "Not saved"
                     : hasDraft
-                      ? "Draft saved in this browser"
+                      ? draftPersisted
+                        ? "Draft saved in this browser"
+                        : "Draft only in this tab. Keep it open until saved."
                       : "Ready"}
             </span>
           </div>
@@ -668,7 +684,7 @@ function ReviewWorkspace({
             value={commentBody}
             onChange={(event) => updateCommentBody(event.target.value)}
             maxLength={2_000}
-            disabled={!capabilities.canComment}
+            disabled={!capabilities.canComment || saveState === "saving"}
             required
           />
           <button

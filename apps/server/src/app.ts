@@ -206,6 +206,7 @@ export async function createApp(
   const generateExampleMedia =
     dependencies.generateExampleMedia ??
     ((destinationPath: string) => createExampleMedia(destinationPath, config));
+  let exampleGenerating = false;
   const now = dependencies.now ?? (() => new Date());
   const app = Fastify({
     logger:
@@ -262,6 +263,16 @@ export async function createApp(
   });
 
   app.setErrorHandler((error, _request, reply) => {
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "statusCode" in error &&
+      error.statusCode === 429
+    ) {
+      return reply
+        .code(429)
+        .send({ error: "Too many requests. Please try again later." });
+    }
     if (error instanceof UploadLimitError) {
       return reply.code(413).send({ error: error.message });
     }
@@ -384,44 +395,57 @@ export async function createApp(
     return reply.code(201).send({ id, title: body.title });
   });
 
-  app.post("/api/projects/example", async (request, reply) => {
-    const current = now();
-    const session = requireAdmin(request, reply, database, current);
-    if (!session || !requireWriteAuthorization(request, reply, session, config)) return;
+  app.post(
+    "/api/projects/example",
+    { config: { rateLimit: { max: 3, timeWindow: "1 minute" } } },
+    async (request, reply) => {
+      const current = now();
+      const session = requireAdmin(request, reply, database, current);
+      if (!session || !requireWriteAuthorization(request, reply, session, config))
+        return;
 
-    const sourcePath = path.join(config.tempDir, `${randomUUID()}.example.webm`);
-    let storedName: string | undefined;
-    try {
-      await generateExampleMedia(sourcePath);
-      const stored = await storeUpload({
-        source: createReadStream(sourcePath),
-        filename: "marktake-generated-example.webm",
-        config,
-        mediaTools,
-        existingStorageBytes: database.storageBytes(),
-      });
-      storedName = stored.storedName;
-      const projectId = randomUUID();
-      const versionId = randomUUID();
-      database.createProject(projectId, "Example review", current.toISOString());
-      database.createVersion({
-        id: versionId,
-        projectId,
-        ordinal: 1,
-        label: "Generated practice cut",
-        ...stored,
-        createdAt: current.toISOString(),
-      });
-      return await reply.code(201).send({ id: projectId, versionId });
-    } catch (error) {
-      if (storedName) {
-        await rm(path.join(config.storageDir, storedName), { force: true });
+      // A second owner tab must not start another encoder while this one runs.
+      if (exampleGenerating) {
+        return reply
+          .code(429)
+          .send({ error: "An example is already being generated. Try again shortly." });
       }
-      throw error;
-    } finally {
-      await rm(sourcePath, { force: true });
-    }
-  });
+      exampleGenerating = true;
+      const sourcePath = path.join(config.tempDir, `${randomUUID()}.example.mp4`);
+      let storedName: string | undefined;
+      try {
+        await generateExampleMedia(sourcePath);
+        const stored = await storeUpload({
+          source: createReadStream(sourcePath),
+          filename: "marktake-generated-example.mp4",
+          config,
+          mediaTools,
+          existingStorageBytes: database.storageBytes(),
+        });
+        storedName = stored.storedName;
+        const projectId = randomUUID();
+        const versionId = randomUUID();
+        database.createProject(projectId, "Example review", current.toISOString());
+        database.createVersion({
+          id: versionId,
+          projectId,
+          ordinal: 1,
+          label: "Generated practice cut",
+          ...stored,
+          createdAt: current.toISOString(),
+        });
+        return await reply.code(201).send({ id: projectId, versionId });
+      } catch (error) {
+        if (storedName) {
+          await rm(path.join(config.storageDir, storedName), { force: true });
+        }
+        throw error;
+      } finally {
+        exampleGenerating = false;
+        await rm(sourcePath, { force: true });
+      }
+    },
+  );
 
   app.get<{ Params: ProjectParams }>(
     "/api/projects/:projectId",

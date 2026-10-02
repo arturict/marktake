@@ -25,15 +25,18 @@ These are not copied flows or visual assets.
 
 ## First value path
 
-1. A new owner can generate a six-second local example review. The server uses
-   its installed ffmpeg and does not download media.
+1. A new owner can generate a six-second local H.264 MP4 example review. The server
+   uses its installed ffmpeg and does not download media. Generation is limited
+   to three requests per minute per IP, one active encoder, two encoder threads
+   and a 30-second timeout.
 2. A reviewer can play and pause using native controls.
 3. Desktop reviewers can place a markup. Keyboard users can place the selected
    markup at the center by focusing the annotation canvas and pressing Enter.
 4. Mobile reviewers get an explicit text-only review mode because precise
    drawing is not reliable on small coarse-pointer surfaces.
 5. Saving exposes `Saving`, `Saved and sent`, or `Not saved`. A failed note keeps
-   its text and markup ready for retry.
+   its text and markup ready for retry. A successful save stays confirmed if
+   refreshing threads fails. Blocked browser storage gets a tab-only draft warning.
 
 The checklist is contextual, skippable, persistent, and recoverable through
 `Show guide`. It never blocks the review.
@@ -77,3 +80,6 @@ The checklist is contextual, skippable, persistent, and recoverable through
 - No claim of exact decoded-frame display in every browser.
 - No forced onboarding tour.
 - No sponsor, pricing, or managed-service interruption before the first note.
+
+For a synthetic walkthrough and recent-workflow interview prompts, see
+[first-review validation](first-review-validation.md).
