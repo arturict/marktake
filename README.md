@@ -127,6 +127,8 @@ creator and guest journey in Chromium, Firefox, and WebKit in CI.
 ## Project documents
 
 - [Product evidence and competitive boundary](docs/product-research.md)
+- [Reviewer UX contract and state coverage](docs/reviewer-ux.md)
+- [First-review demo and workflow validation](docs/first-review-validation.md)
 - [Architecture and security boundaries](docs/architecture.md)
 - [Deployment and operations](docs/deployment.md)
 - [Name screen](docs/naming.md)

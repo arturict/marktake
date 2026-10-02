@@ -1,11 +1,12 @@
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import type { FastifyInstance } from "fastify";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { AppConfig } from "./config.js";
 import { MarktakeDatabase } from "./db.js";
 import { createApp } from "./app.js";
+import type { MediaTools } from "./media.js";
 
 type TestContext = {
   app: FastifyInstance;
@@ -22,13 +23,25 @@ type Auth = {
 const contexts: TestContext[] = [];
 const now = new Date("2026-07-29T10:00:00.000Z");
 
+function mp4Bytes(payloadSize = 32): Buffer {
+  return Buffer.concat([
+    Buffer.from([0, 0, 0, 24]),
+    Buffer.from("ftypmp42", "ascii"),
+    Buffer.alloc(payloadSize, 1),
+  ]);
+}
+
 function responseCookie(header: string | string[] | undefined): string {
   const value = Array.isArray(header) ? header[0] : header;
   if (!value) throw new Error("Expected a session cookie.");
   return value.split(";")[0] ?? value;
 }
 
-async function createContext(): Promise<TestContext> {
+async function createContext(
+  generateExampleMedia = async (destinationPath: string): Promise<void> => {
+    await writeFile(destinationPath, mp4Bytes());
+  },
+): Promise<TestContext> {
   const directory = await mkdtemp(path.join(tmpdir(), "marktake-app-test-"));
   const config: AppConfig = {
     adminPassword: "owner-test-password",
@@ -52,6 +65,19 @@ async function createContext(): Promise<TestContext> {
     mkdir(config.tempDir, { recursive: true }),
   ]);
   const database = new MarktakeDatabase(config.databasePath);
+  const mediaTools: MediaTools = {
+    inspect: vi.fn(() =>
+      Promise.resolve({
+        mime: "video/mp4" as const,
+        durationMs: 6_000,
+        fpsNumerator: 24,
+        fpsDenominator: 1,
+        width: 960,
+        height: 540,
+      }),
+    ),
+    remux: vi.fn(async (source, destination) => copyFile(source, destination)),
+  };
   for (const project of [
     { id: "project-a", title: "Launch cut", version: "version-a", file: "a.mp4" },
     {
@@ -80,7 +106,12 @@ async function createContext(): Promise<TestContext> {
     });
     await writeFile(path.join(config.storageDir, project.file), Buffer.alloc(16, 7));
   }
-  const app = await createApp(config, { database, now: () => now });
+  const app = await createApp(config, {
+    database,
+    mediaTools,
+    generateExampleMedia,
+    now: () => now,
+  });
   const context = { app, config, database, directory };
   contexts.push(context);
   return context;
@@ -155,6 +186,121 @@ describe("HTTP security boundaries", () => {
       payload: { title: "Accepted project" },
     });
     expect(accepted.statusCode).toBe(201);
+  });
+
+  it("creates a real local example project without a download or external service", async () => {
+    const { app, database } = await createContext();
+    const auth = await login(app);
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/projects/example",
+      headers: {
+        cookie: auth.cookie,
+        "x-csrf-token": auth.csrf,
+        origin: "http://marktake.test",
+      },
+    });
+
+    expect(response.statusCode).toBe(201);
+    const body = response.json<{ id: string; versionId: string }>();
+    const project = database.getReviewProject(body.id);
+    expect(project?.title).toBe("Example review");
+    expect(project?.versions).toHaveLength(1);
+    expect(project?.versions[0]).toMatchObject({
+      id: body.versionId,
+      label: "Generated practice cut",
+      durationMs: 6_000,
+      fpsNumerator: 24,
+      fpsDenominator: 1,
+      width: 960,
+      height: 540,
+    });
+  });
+
+  it("blocks unauthorized sample generation before calling ffmpeg", async () => {
+    const generate = vi.fn(() =>
+      Promise.reject(new Error("Unauthorized generator call")),
+    );
+    const { app } = await createContext(generate);
+    const unauthenticated = await app.inject({
+      method: "POST",
+      url: "/api/projects/example",
+    });
+    expect(unauthenticated.statusCode).toBe(401);
+    const auth = await login(app);
+    const missingCsrf = await app.inject({
+      method: "POST",
+      url: "/api/projects/example",
+      headers: { cookie: auth.cookie },
+    });
+    expect(missingCsrf.statusCode).toBe(403);
+    const hostileOrigin = await app.inject({
+      method: "POST",
+      url: "/api/projects/example",
+      headers: {
+        cookie: auth.cookie,
+        "x-csrf-token": auth.csrf,
+        origin: "https://attacker.invalid",
+      },
+    });
+    expect(hostileOrigin.statusCode).toBe(403);
+    expect(generate).not.toHaveBeenCalled();
+  });
+
+  it("limits repeated example requests without creating more projects", async () => {
+    const { app, database } = await createContext();
+    const auth = await login(app);
+    const request = {
+      method: "POST" as const,
+      url: "/api/projects/example",
+      headers: { cookie: auth.cookie, "x-csrf-token": auth.csrf },
+    };
+    for (let attempt = 0; attempt < 3; attempt++) {
+      expect((await app.inject(request)).statusCode).toBe(201);
+    }
+    const projectCount = database.listProjects().length;
+    const throttled = await app.inject(request);
+    expect(throttled.statusCode).toBe(429);
+    expect(throttled.headers["retry-after"]).toBeDefined();
+    expect(database.listProjects()).toHaveLength(projectCount);
+  });
+
+  it("runs only one example encoder at a time and recovers after a failure", async () => {
+    let rejectGeneration: (reason: Error) => void = () => {
+      throw new Error("Generation has not started");
+    };
+    let notifyStarted: () => void = () => {
+      throw new Error("Start signal not initialized");
+    };
+    const started = new Promise<void>((resolve) => {
+      notifyStarted = resolve;
+    });
+    const generate = vi
+      .fn()
+      .mockImplementationOnce(() => {
+        notifyStarted();
+        return new Promise<void>((_resolve, reject) => {
+          rejectGeneration = reject;
+        });
+      })
+      .mockImplementation(async (destination: string) =>
+        writeFile(destination, mp4Bytes()),
+      );
+    const { app, database } = await createContext(generate);
+    const auth = await login(app);
+    const request = {
+      method: "POST" as const,
+      url: "/api/projects/example",
+      headers: { cookie: auth.cookie, "x-csrf-token": auth.csrf },
+    };
+    const first = app.inject(request).then((response) => response);
+    await started;
+    expect((await app.inject(request)).statusCode).toBe(429);
+    expect(generate).toHaveBeenCalledTimes(1);
+    expect(database.listProjects()).toHaveLength(2);
+    rejectGeneration(new Error("Synthetic encoder failure"));
+    expect((await first).statusCode).toBe(500);
+    expect((await app.inject(request)).statusCode).toBe(201);
   });
 
   it("keeps guest secrets in the URL fragment, stores only a hash, and enforces IDOR scope", async () => {

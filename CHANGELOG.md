@@ -8,6 +8,23 @@ All notable changes are documented here. The format follows
 
 ### Changed
 
+- Disable schema JIT evaluation so draft restoration respects the browser CSP.
+
+- Patch production Fastify, brace-expansion and fast-uri advisories found by the
+  required audit.
+
+- Generate the practice cut as H.264 MP4 for all supported browser engines,
+  throttle generation and bound encoder resources.
+- Keep successful saves confirmed when thread refresh fails, freeze the draft
+  while submitting, and explain when browser storage cannot preserve a draft.
+- Add a synthetic demo checklist and questions about a recent review workflow.
+
+- Added a generated local example review, resumable first-review guidance, robust
+  draft persistence, explicit save and connection states, upload retry states,
+  keyboard annotation support, and an honest mobile text-review mode.
+- Expanded the browser journey to cover example creation, annotation, failed-save
+  retry, reload and resume, mobile feedback, console errors, and horizontal
+  overflow.
 - Rebuilt the public landing page around a direct, product-first editorial
   presentation with the tested guest-review screenshot in the hero.
 - Corrected the product research after `lawn.video` was identified as the intended

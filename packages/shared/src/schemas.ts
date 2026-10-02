@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+// Shared validators run in the browser under script-src self, without eval.
+z.config({ jitless: true });
+
 const normalized = z.number().min(0).max(1);
 
 function hasUnsafeControlCharacter(value: string): boolean {
