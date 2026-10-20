@@ -1,0 +1,18 @@
+# Marktake
+
+> Marktake is an open-source, self-hosted video review server for frame-precise feedback, image markups, versions, and guest decisions.
+
+## Product facts
+
+- Category: self-hosted video review
+- Workflow: upload a browser-ready review copy, share one private link, collect frame feedback, and record a decision
+- Reviewer access: private guest links can work without reviewer accounts
+- Storage: review copies stay on storage controlled by the operator
+- Deployment: one Docker container
+- License: MIT
+
+## Primary links
+
+- Product: https://marktake.vercel.app/
+- Source: https://github.com/arturict/marktake
+- Releases: https://github.com/arturict/marktake/releases
