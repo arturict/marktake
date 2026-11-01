@@ -19,7 +19,7 @@
     "@marktake/shared": "workspace:*",
     "fastify": "5.12.5",
     "file-type": "22.1.0",
-    "zod": "4.0.10"
+    "zod": "4.6.6"
   },
   "devDependencies": {
     "@types/node": "24.1.0",
